@@ -42,10 +42,11 @@
         }
     } else if (gestureRecognizer.state == UIGestureRecognizerStateChanged) {
         CGPoint translation = [gestureRecognizer translationInView:self.superview];
-        self.translation = CGPointMake(roundf(self.startPoint.x + translation.x),
+        self.translation = CGPointMake(0,
                                        roundf(self.startPoint.y + translation.y));
         
         if ([self.delegate respondsToSelector:@selector(resizeControlViewDidResize:)]) {
+            
             [self.delegate resizeControlViewDidResize:self];
         }
     } else if (gestureRecognizer.state == UIGestureRecognizerStateEnded || gestureRecognizer.state == UIGestureRecognizerStateCancelled) {
