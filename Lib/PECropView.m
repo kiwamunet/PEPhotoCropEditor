@@ -198,10 +198,8 @@ static const CGFloat aspectRatio = 9.0 / 16.0;
                                                                    (self.scrollView.frame.size.width * (self.image.size.height / self.image.size.width)))];
     self.imageView.backgroundColor = [UIColor clearColor];
     self.imageView.contentMode = UIViewContentModeScaleAspectFit;
-    self.imageView.image = self.image;
+    self.imageView.image = [UIImage imageWithCGImage:self.image.CGImage scale:self.image.scale orientation:self.image.imageOrientation];
     [self.zoomingView addSubview:self.imageView];
-    self.imageView.center = self.scrollView.center;
-    
 }
 
 #pragma mark -
