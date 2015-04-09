@@ -20,7 +20,7 @@ static const CGFloat aspectRatio = 9.0 / 16.0;
 
 @property (nonatomic) UIScrollView *scrollView;
 @property (nonatomic) UIView *zoomingView;
-@property (nonatomic) UIImageView *imageView;
+//@property (nonatomic) UIImageView *imageView;
 
 @property (nonatomic) PECropRectView *cropRectView;
 @property (nonatomic) UIView *topOverlayView;
@@ -321,7 +321,7 @@ static const CGFloat aspectRatio = 9.0 / 16.0;
 
 - (UIImage *)croppedImage
 {
-    return [self.image rotatedImageWithtransform:self.rotation croppedToRect:self.zoomedCropRect];
+    return [self.imageView.image rotatedImageWithtransform:self.rotation croppedToRect:self.zoomedCropRect];
 }
 
 - (CGRect)zoomedCropRect
