@@ -25,6 +25,7 @@
 @property (nonatomic) CGRect imageCropRect;
 
 @property (nonatomic) CGFloat rotationAngle;
+
 @property (nonatomic) UIImageView *imageView;
 
 - (void)resetCropRect;

@@ -18,8 +18,6 @@
 
 @property (nonatomic) BOOL keepingAspectRatio;
 
-- (void)setScrollOffset: (CGPoint)point;
-
 @end
 
 @protocol PECropRectViewDelegate <NSObject>
