@@ -324,7 +324,7 @@ static const CGFloat MarginRight = MarginLeft;
 
 - (UIImage *)croppedImage
 {
-    return [self.image rotatedImageWithtransform:self.rotation croppedToRect:self.zoomedCropRect];
+    return [self.imageView.image rotatedImageWithtransform:self.rotation croppedToRect:self.zoomedCropRect];
 }
 
 - (CGRect)zoomedCropRect
