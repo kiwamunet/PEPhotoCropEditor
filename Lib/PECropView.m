@@ -20,6 +20,7 @@ static const CGFloat MarginRight = MarginLeft;
 @property (nonatomic) UIScrollView *scrollView;
 @property (nonatomic) UIView *zoomingView;
 
+
 @property (nonatomic) PECropRectView *cropRectView;
 @property (nonatomic) UIView *topOverlayView;
 @property (nonatomic) UIView *leftOverlayView;
@@ -65,17 +66,13 @@ static const CGFloat MarginRight = MarginLeft;
     self.scrollView.delegate = self;
     self.scrollView.autoresizingMask = UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleBottomMargin;
     self.scrollView.backgroundColor = [UIColor clearColor];
-    self.scrollView.maximumZoomScale = 4.0f;
+    self.scrollView.maximumZoomScale = 3.0f;
     self.scrollView.showsHorizontalScrollIndicator = NO;
     self.scrollView.showsVerticalScrollIndicator = NO;
     self.scrollView.bounces = NO;
     self.scrollView.bouncesZoom = NO;
-    self.scrollView.clipsToBounds = YES;
+    self.scrollView.clipsToBounds = NO;
     [self addSubview:self.scrollView];
-    
-    //    UIRotationGestureRecognizer *rotationGestureRecognizer = [[UIRotationGestureRecognizer alloc] initWithTarget:self action:@selector(handleRotation:)];
-    //    rotationGestureRecognizer.delegate = self;
-    //    [self.scrollView addGestureRecognizer:rotationGestureRecognizer];
     
     self.cropRectView = [[PECropRectView alloc] init];
     self.cropRectView.delegate = self;
@@ -145,7 +142,7 @@ static const CGFloat MarginRight = MarginLeft;
     }
     
     if (!self.isResizing) {
-        [self layoutCropRectViewWithCropRect:self.scrollView.frame];
+        [self layoutCropRectViewWithCropRect:self.bounds];
         
         if (self.interfaceOrientation != interfaceOrientation) {
             [self zoomToCropRect:self.scrollView.frame];
@@ -153,11 +150,6 @@ static const CGFloat MarginRight = MarginLeft;
     }
     
     self.interfaceOrientation = interfaceOrientation;
-    
-    if (self.cropAspectRatio !=  (16.0 / 9.0)) {
-        self.cropAspectRatio = 16.0 / 9.0;
-        self.keepingCropAspectRatio = YES;
-    }
 }
 
 - (void)layoutCropRectViewWithCropRect:(CGRect)cropRect
@@ -189,19 +181,29 @@ static const CGFloat MarginRight = MarginLeft;
 - (void)setupImageView
 {
     CGRect cropRect = AVMakeRectWithAspectRatioInsideRect(self.image.size, self.insetRect);
-    
     self.scrollView.frame = cropRect;
     self.scrollView.contentSize = cropRect.size;
     
     self.zoomingView = [[UIView alloc] initWithFrame:self.scrollView.bounds];
-    self.zoomingView.backgroundColor = [UIColor redColor];
+    self.zoomingView.backgroundColor = [UIColor clearColor];
     [self.scrollView addSubview:self.zoomingView];
     
     self.imageView = [[UIImageView alloc] initWithFrame:self.zoomingView.bounds];
-    self.imageView.backgroundColor = [UIColor blueColor];
+    self.imageView.backgroundColor = [UIColor clearColor];
+    self.imageView.alpha = 0.0;
     self.imageView.contentMode = UIViewContentModeScaleAspectFit;
     self.imageView.image = self.image;
     [self.zoomingView addSubview:self.imageView];
+    CGFloat zoomMagnification = self.frame.size.width / self.imageView.frame.size.width;
+    [self.scrollView setZoomScale:zoomMagnification];
+    [self layoutCropRectViewWithCropRect:self.bounds];
+    [self cropRectViewDidBeginEditing:self.cropRectView];
+    [self cropRectViewEditingChanged:self.cropRectView];
+    [self cropRectViewDidEndEditing:self.cropRectView];
+    
+    [UIView animateWithDuration:1.0f animations:^{
+        self.imageView.alpha = 1.0;
+    }];
 }
 
 #pragma mark -
@@ -215,7 +217,6 @@ static const CGFloat MarginRight = MarginLeft;
     
     [self.zoomingView removeFromSuperview];
     self.zoomingView = nil;
-    
     
     [self setNeedsLayout];
 }
@@ -315,7 +316,7 @@ static const CGFloat MarginRight = MarginLeft;
     
     self.scrollView.bounds = self.imageView.bounds;
     
-    [self layoutCropRectViewWithCropRect:self.scrollView.bounds];
+    [self layoutCropRectViewWithCropRect:self.bounds];
     
     if (animated) {
         [UIView commitAnimations];
@@ -330,14 +331,14 @@ static const CGFloat MarginRight = MarginLeft;
 - (CGRect)zoomedCropRect
 {
     CGRect cropRect = [self convertRect:self.scrollView.frame toView:self.zoomingView];
-    CGSize size = self.image.size;
+    CGSize size = self.imageView.image.size;
     
     CGFloat ratio = 1.0f;
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     if (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad || UIInterfaceOrientationIsPortrait(orientation)) {
-        ratio = CGRectGetWidth(AVMakeRectWithAspectRatioInsideRect(self.image.size, self.insetRect)) / size.width;
+        ratio = CGRectGetWidth(AVMakeRectWithAspectRatioInsideRect(self.imageView.image.size, self.insetRect)) / size.width;
     } else {
-        ratio = CGRectGetHeight(AVMakeRectWithAspectRatioInsideRect(self.image.size, self.insetRect)) / size.height;
+        ratio = CGRectGetHeight(AVMakeRectWithAspectRatioInsideRect(self.imageView.image.size, self.insetRect)) / size.height;
     }
     
     CGRect zoomedCropRect = CGRectMake(cropRect.origin.x / ratio,
@@ -412,17 +413,6 @@ static const CGFloat MarginRight = MarginLeft;
     return cropRect;
 }
 
-- (void)automaticZoomIfEdgeTouched:(CGRect)cropRect
-{
-    if (CGRectGetMinX(cropRect) < CGRectGetMinX(self.editingRect) - 5.0f ||
-        CGRectGetMaxX(cropRect) > CGRectGetMaxX(self.editingRect) + 5.0f ||
-        CGRectGetMinY(cropRect) < CGRectGetMinY(self.editingRect) - 5.0f ||
-        CGRectGetMaxY(cropRect) > CGRectGetMaxY(self.editingRect) + 5.0f) {
-        [UIView animateWithDuration:1.0 delay:0.0 options:UIViewAnimationOptionBeginFromCurrentState animations:^{
-            [self zoomToCropRect:self.cropRectView.frame];
-        } completion:NULL];
-    }
-}
 
 #pragma mark -
 
@@ -434,10 +424,7 @@ static const CGFloat MarginRight = MarginLeft;
 - (void)cropRectViewEditingChanged:(PECropRectView *)cropRectView
 {
     CGRect cropRect = [self cappedCropRectInImageRectWithCropRectView:cropRectView];
-    
     [self layoutCropRectViewWithCropRect:cropRect];
-    
-    [self automaticZoomIfEdgeTouched:cropRect];
 }
 
 - (void)cropRectViewDidEndEditing:(PECropRectView *)cropRectView
@@ -527,5 +514,4 @@ static const CGFloat MarginRight = MarginLeft;
         self.image = self.imageView.image;
     }
 }
-
 @end
